@@ -11,6 +11,33 @@
 import { beforeEach, afterEach, vi } from "vitest";
 import "@testing-library/jest-dom/vitest";
 
+// ── force UTC ──
+// Date-based fixtures (e.g. `new Date(2026, 6, 30).toISOString().split("T")[0]`)
+// shift to the wrong calendar day under non-UTC system timezones. Run tests in UTC
+// so date-only strings stay deterministic regardless of the host machine's TZ.
+process.env.TZ = "UTC";
+
+import Module from "node:module";
+import path from "node:path";
+import fs from "node:fs";
+
+// ── "@/" alias support for literal require() calls in test files ──
+// Vite/vitest resolve the "@/" alias for `import`, but a literal `require("@/...")`
+// bypasses vite's resolver and hits Node's real CJS resolution, which knows nothing
+// about the alias or extensionless .ts files. Patch it here so both work.
+const projectRoot = process.cwd();
+const originalResolveFilename = (Module as unknown as { _resolveFilename: Function })._resolveFilename;
+(Module as unknown as { _resolveFilename: Function })._resolveFilename = function (
+  request: string,
+  ...rest: unknown[]
+) {
+  if (request.startsWith("@/")) {
+    const resolved = path.resolve(projectRoot, "src", request.slice(2));
+    request = fs.existsSync(resolved + ".ts") ? resolved + ".ts" : resolved;
+  }
+  return originalResolveFilename.call(this, request, ...rest);
+};
+
 // ── localStorage / sessionStorage isolation ──
 // jsdom's storage persists between tests by default. Clear it to prevent pollution.
 beforeEach(() => {
