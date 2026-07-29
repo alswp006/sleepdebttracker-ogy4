@@ -17,8 +17,8 @@ export function removeItem(key: string): void {
 
 // Packet 0002: Concrete CRUD helpers for domain entities
 
-import type { SleepRecord, UserSettings, Streak, ChronotypeResult } from "./types";
-import { STORAGE_KEYS, DEFAULT_TARGET_MINUTES } from "./types";
+import type { SleepRecord, UserSettings, Streak, ChronotypeResult } from "./types.ts";
+import { STORAGE_KEYS, DEFAULT_TARGET_MINUTES } from "./types.ts";
 
 type WriteResult = { ok: boolean; reason?: "QUOTA" };
 

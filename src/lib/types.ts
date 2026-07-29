@@ -43,7 +43,7 @@ export type CalcSleepResult = {
 
 export type SaveResult =
   | { ok: true; record: SleepRecord }
-  | { ok: false; error: string };
+  | { ok: false; reason: "QUOTA" | "INVALID_TIME" };
 
 export type RouteState = {
   "/": undefined;
