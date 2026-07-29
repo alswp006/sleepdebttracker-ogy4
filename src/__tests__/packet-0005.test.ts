@@ -444,7 +444,7 @@ describe('getWeekReport', () => {
   it('should return correct day order (oldest to newest)', () => {
     const { getWeekReport } = require('@/lib/derive');
 
-    // Arrange: 명확한 점수로 순서 확인
+    // Arrange: 명확한 점수로 순서 확인 (5개 레코드, 7일 윈도우에서 2일 공백)
     const currentDate = '2026-07-30';
     const records: SleepRecord[] = [
       { id: '2026-07-30', date: '2026-07-30', bedTime: '23:30', wakeTime: '07:00', sleepMinutes: 100, debtMinutes: 0, createdAt: Date.now() },
@@ -457,8 +457,9 @@ describe('getWeekReport', () => {
     // Act
     const result = getWeekReport(records, currentDate);
 
-    // Assert: index 0부터 [2026-07-26(500), ..., 2026-07-30(100)]
-    expect(result.sleepMinutes[0]).toBe(500); // 2026-07-26 (oldest)
-    expect(result.sleepMinutes[4]).toBe(100); // 2026-07-30 (newest)
+    // Assert: 7일 배열, index 2부터 데이터 시작 (2026-07-24, 2026-07-25는 0)
+    // [0, 0, 500, 400, 300, 200, 100] (oldest 2026-07-24 → newest 2026-07-30)
+    expect(result.sleepMinutes[2]).toBe(500); // 2026-07-26 (oldest of provided records)
+    expect(result.sleepMinutes[6]).toBe(100); // 2026-07-30 (newest)
   });
 });
