@@ -18,11 +18,20 @@ import { vi } from "vitest";
 export const mockNavigate = vi.fn();
 export const mockLocation = { pathname: "/", search: "", state: null, key: "default" };
 
+// Exposed on globalThis so vitest.setup.ts's raw require() shim (used for TDD red-phase
+// `require("@/pages/X")` calls, which bypass vite-node's SSR module graph and thus its
+// vi.mock interception) can reuse these EXACT singletons instead of loading real modules.
+(globalThis as Record<string, unknown>).__mockNavigate = mockNavigate;
+(globalThis as Record<string, unknown>).__mockLocation = mockLocation;
+
 // ── TDS (@toss/tds-mobile) ──
 // TDS components use CSS-in-JS + layout hooks that crash in jsdom.
 // Replace with lightweight DOM stand-ins that preserve prop-based testing.
-export function mockTds() {
-  vi.mock("@toss/tds-mobile", () => ({
+// Exported as a singleton (not just built inline in the vi.mock factory below) so that
+// vitest.setup.ts's raw require() shim (used for TDD red-phase `require("@/pages/X")`
+// calls, which bypass vite-node's SSR mocking) can substitute the exact same mock object —
+// keeping assertions against imports like `generateHapticFeedback` pointed at one vi.fn().
+export const tdsMock = {
     Button: ({ children, onClick, ...props }: any) =>
       React.createElement("button", { onClick, ...props }, children),
 
@@ -161,14 +170,20 @@ export function mockTds() {
 
     Switch: ({ checked, onChange }: any) =>
       React.createElement("input", { type: "checkbox", checked, onChange, role: "switch" }),
-  }));
+};
+
+(globalThis as Record<string, unknown>).__tdsMock = tdsMock;
+
+export function mockTds() {
+  vi.mock("@toss/tds-mobile", () => tdsMock);
 }
 
 // ── @apps-in-toss/web-framework ──
 // Mocks the REAL SDK exports (verified from .d.ts).
 // SDK is imperative (no hooks). Callback-style APIs invoke onEvent immediately for test speed.
-export function mockAppsInToss() {
-  vi.mock("@apps-in-toss/web-framework", () => {
+// Built once as a singleton (see tdsMock above for why) — reused by both the vi.mock factory
+// below and vitest.setup.ts's raw require() shim.
+function createAppsInTossMock() {
     const Storage = {
       setItem: vi.fn(async (k: string, v: string) => { localStorage.setItem(k, v); }),
       getItem: vi.fn(async (k: string) => localStorage.getItem(k)),
@@ -284,7 +299,14 @@ export function mockAppsInToss() {
       getPermission: vi.fn(async () => ({ granted: true })),
       getSchemeUri: vi.fn(async () => "intoss://test-app"),
     };
-  });
+}
+
+export const appsInTossMock = createAppsInTossMock();
+
+(globalThis as Record<string, unknown>).__appsInTossMock = appsInTossMock;
+
+export function mockAppsInToss() {
+  vi.mock("@apps-in-toss/web-framework", () => appsInTossMock);
 }
 
 // ── Toss Reward Ad Component ──
