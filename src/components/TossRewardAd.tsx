@@ -3,6 +3,7 @@ import {
   loadFullScreenAd,
   showFullScreenAd,
 } from "@apps-in-toss/web-framework";
+import { getAdSlotId } from "@/lib/adConfig";
 import "@/styles/reward-ad.css";
 
 interface TossRewardAdProps {
@@ -47,11 +48,15 @@ export function TossRewardAd({
   const [adLoaded, setAdLoaded] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 실제 콘솔 발급 광고 슬롯 ID는 배포 env(VITE_TOSS_AD_SLOT_ID)로 주입되어 App 최상위에서
+  // getAdSlotId()에 담긴다. 미설정(개발/테스트)이면 prop 슬롯으로 폴백.
+  const resolvedSlotId = getAdSlotId() ?? slotId;
+
   // Load the ad on mount
   useEffect(() => {
     try {
       loadFullScreenAd({
-        slotId,
+        slotId: resolvedSlotId,
         onEvent: () => setAdLoaded(true),
         onError: () => {
           // Load failed (e.g., local browser) — auto-unlock
@@ -69,7 +74,7 @@ export function TossRewardAd({
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slotId]);
+  }, [resolvedSlotId]);
 
   if (unlocked) {
     return <>{children}</>;
@@ -86,7 +91,7 @@ export function TossRewardAd({
 
     try {
       showFullScreenAd({
-        slotId,
+        slotId: resolvedSlotId,
         onEvent: (event: { type?: string }) => {
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           // event.type === 'rewarded' indicates completion (SDK version-dependent)

@@ -2,6 +2,14 @@ import type { ReactNode } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { getSettings } from './lib/storage';
+import { setAdConfig } from './lib/adConfig';
+
+// 실제 콘솔 발급 광고 ID는 배포 env로 주입 — 앱 최상위에서 한 번 읽어 adConfig에 담는다.
+// 광고 컴포넌트(AdSlot/TossRewardAd)는 여기서 담긴 값을 읽고, 미설정 시 prop 라벨로 폴백.
+setAdConfig({
+  groupId: import.meta.env.VITE_TOSS_AD_GROUP_ID,
+  slotId: import.meta.env.VITE_TOSS_AD_SLOT_ID,
+});
 import HomePage from './pages/HomePage';
 import OnboardingPage from './pages/OnboardingPage';
 import RecordPage from './pages/RecordPage';

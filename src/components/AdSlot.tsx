@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { TossAds } from "@apps-in-toss/web-framework";
+import { getAdGroupId } from "@/lib/adConfig";
 
 interface AdSlotProps {
   /** 광고 그룹 ID — 앱인토스 콘솔에서 발급받아 입력 */
@@ -46,6 +47,10 @@ function ensureInitialized() {
 export function AdSlot({ adGroupId, className, variant, theme }: AdSlotProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // 실제 콘솔 발급 광고 그룹 ID는 배포 env(VITE_TOSS_AD_GROUP_ID)로 주입되어 App 최상위에서
+  // getAdGroupId()에 담긴다. 미설정(개발/테스트)이면 prop 라벨로 폴백.
+  const resolvedAdGroupId = getAdGroupId() ?? adGroupId;
+
   useEffect(() => {
     const target = containerRef.current;
     if (!target) return;
@@ -55,7 +60,7 @@ export function AdSlot({ adGroupId, className, variant, theme }: AdSlotProps) {
 
     let result: { destroy: () => void } | null = null;
     try {
-      result = TossAds.attachBanner(adGroupId, target, { variant, theme });
+      result = TossAds.attachBanner(resolvedAdGroupId, target, { variant, theme });
     } catch {
       /* SDK unavailable or attach failed — silent */
     }
@@ -67,7 +72,9 @@ export function AdSlot({ adGroupId, className, variant, theme }: AdSlotProps) {
         /* cleanup best-effort */
       }
     };
-  }, [adGroupId, variant, theme]);
+  }, [resolvedAdGroupId, variant, theme]);
 
-  return <div ref={containerRef} data-ad-group-id={adGroupId} className={className ?? "ad-slot"} />;
+  return (
+    <div ref={containerRef} data-ad-group-id={resolvedAdGroupId} className={className ?? "ad-slot"} />
+  );
 }
