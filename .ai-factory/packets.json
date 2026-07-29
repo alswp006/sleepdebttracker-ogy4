@@ -1,0 +1,571 @@
+[
+  {
+    "id": "0001",
+    "title": "전 엔티티 타입 + RouteState 정의",
+    "epic": "Epic 1. Data Layer (Types)",
+    "task": {
+      "description": "모든 데이터 모델·함수 반환 타입·네비게이션 계약을 순수 타입으로 선언한다(런타임 코드 0줄). SleepRecord, UserSettings, Streak, ChronotypeResult, ChronotypeType 인터페이스(SPEC 그대로). CalcInput, CalcSleepResult, SaveResult 유니온. RouteState 타입(/record:{date}, /chronotype/result:{result}, 나머지 undefined). 상수 STORAGE_KEYS(sdt.records/settings/streak/chronotype), DEFAULT_TARGET_MINUTES=480, TARGET_MIN=240, TARGET_MAX=720, ROLLING_WINDOW_DAYS=14 export.",
+      "acceptance_criteria": [
+        "tsc 통과, 런타임 코드 0줄",
+        "RouteState 타입 export 존재",
+        "후속 페이지·헬퍼가 이 파일에서 import 가능"
+      ]
+    },
+    "covers": [
+      "타입 계약 정의"
+    ],
+    "files": [
+      "src/lib/types.ts"
+    ],
+    "definition_of_done": [
+      "tsc 통과",
+      "RouteState export 존재",
+      "STORAGE_KEYS 등 상수 export"
+    ],
+    "depends_on": [],
+    "db_schema": "interface SleepRecord { id: string; date: string; bedTime: string; wakeTime: string; sleepMinutes: number; debtMinutes: number; createdAt: number } → localStorage key: 'sdt.records'; UserSettings→'sdt.settings'; Streak→'sdt.streak'; ChronotypeResult→'sdt.chronotype'",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0002",
+    "title": "localStorage CRUD 헬퍼",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "4개 키에 대한 안전한 read/write 순수 함수. 파싱 실패 시 기본값 반환(console.error 금지), write 시 QuotaExceededError catch. getRecords():date 오름차순 정렬, 파싱실패 시 []. writeRecords():{ok,reason?:'QUOTA'}. getSettings/writeSettings(기본 targetMinutes480,aiNoticeAck false,onboarded false). getStreak/writeStreak(기본 current0,best0,lastCheckDate''). getChronotype/writeChronotype(없거나 파싱실패 시 null).",
+      "acceptance_criteria": [
+        "손상 문자열 '{invalid' 주입 시 기본값 반환·크래시 없음·console.error 없음",
+        "QUOTA mock 시 {ok:false,reason:'QUOTA'} 반환",
+        "getRecords date 오름차순 정렬 반환"
+      ]
+    },
+    "covers": [
+      "F1-AC1",
+      "F1-AC5",
+      "F1-AC6",
+      "F6-AC6"
+    ],
+    "files": [
+      "src/lib/storage.ts"
+    ],
+    "definition_of_done": [
+      "손상 값 복구·크래시 없음",
+      "QUOTA catch 동작",
+      "컴파일 통과"
+    ],
+    "depends_on": [
+      "0001"
+    ],
+    "db_schema": "localStorage keys: sdt.records(SleepRecord[]), sdt.settings(UserSettings), sdt.streak(Streak), sdt.chronotype(ChronotypeResult|null)",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0003",
+    "title": "부채 계산 엔진 (순수 함수)",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "시간·부채 계산 순수 함수 모듈. calcSleep({bedTime,wakeTime},targetMinutes): 정규식 ^([01]\\d|2[0-3]):([0-5]\\d)$ 검증, 실패 시 {ok:false,reason:'INVALID_TIME'}, wake<bed면 +1440 보정, bed===wake면 INVALID_TIME, 성공 시 {ok:true,sleepMinutes,debtMinutes}. getCumulativeDebt(records,currentDate): 최근14일 debtMinutes 합, 음수면 0 클램프. estimatePayoffDays(cumDebt,records,settings): 일평균 상환량 max(30,|목표-최근평균수면|)로 나눠 올림. formatMinutes(min):'N시간 M분'.",
+      "acceptance_criteria": [
+        "calcSleep({23:30,06:00},480)→sleepMinutes390,debtMinutes90",
+        "calcSleep({01:00,06:00},480)→300,180; {07:00,07:00}→INVALID_TIME; {25:70}→INVALID_TIME",
+        "부채 합 -50→0 클램프; 600분/60→10일"
+      ]
+    },
+    "covers": [
+      "F1-AC2",
+      "F1-AC4",
+      "F1-AC7",
+      "F2-AC4",
+      "F3-AC2"
+    ],
+    "files": [
+      "src/lib/calc.ts"
+    ],
+    "definition_of_done": [
+      "모든 예시 케이스 통과",
+      "순수 함수 (localStorage 접근 없음)",
+      "컴파일 통과"
+    ],
+    "depends_on": [
+      "0001"
+    ],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0004",
+    "title": "기록 upsert + 스트릭 갱신 로직",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "기록 저장·스트릭 갱신 오케스트레이션. saveRecord(input,date,currentDate):SaveResult — calc 실행, 동일 date 존재 시 해당 항목만 갱신하여 배열 길이 유지, 없으면 추가, writeRecords QUOTA 시 {ok:false,reason:'QUOTA'} 전파, 성공 시 updateStreak(currentDate) 호출. updateStreak(today): lastCheckDate===today면 변경 없음, 어제면 current+1, 그 외 current=1, best=max(best,current), lastCheckDate 갱신.",
+      "acceptance_criteria": [
+        "동일 date 재저장 시 배열 length 불변·항목만 갱신",
+        "streak 어제기록 3→4, 3일 건너뜀→1(best 유지), 오늘 재저장 불변",
+        "QUOTA 반환 전파"
+      ]
+    },
+    "covers": [
+      "F1-AC3",
+      "F6-AC1",
+      "F6-AC2",
+      "F6-AC3"
+    ],
+    "files": [
+      "src/lib/records.ts"
+    ],
+    "definition_of_done": [
+      "upsert length 불변 검증",
+      "스트릭 갱신 규칙 통과",
+      "QUOTA 전파"
+    ],
+    "depends_on": [
+      "0002",
+      "0003"
+    ],
+    "db_schema": "SaveResult = {ok:true;record:SleepRecord}|{ok:false;reason:'QUOTA'|'INVALID_TIME'}",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0005",
+    "title": "리포트/플랜/크로노타입 파생 계산",
+    "epic": "Epic 2. Data Layer",
+    "task": {
+      "description": "파생 지표 순수 함수. getWeekReport(records,currentDate): 최근7일 일별 sleepMinutes[7], 주간 총 부채, 평균 수면, 최다 부족 요일, 기록<3건 플래그. getRecoveryPlan(cumDebt,targetMinutes): 토·일 각 권장 수면=target+min(부채/2,120), 추가 +N분, cumDebt 0이면 null. diagnoseChronotype(answers:number[]):ChronotypeResult — 각 응답 1~5 클램프, 합계 score, ≤11 MORNING/12~19 INTERMEDIATE/≥20 EVENING, answeredAt 스탬프.",
+      "acceptance_criteria": [
+        "목표480·부채720→권장600(상한120 적용)",
+        "score21→EVENING; 응답값6→5 클램프 후 계산·크래시 없음",
+        "getWeekReport 7일 sleepMinutes 배열 반환"
+      ]
+    },
+    "covers": [
+      "F4-AC3",
+      "F5-AC2",
+      "F7-AC1",
+      "F7-AC6"
+    ],
+    "files": [
+      "src/lib/derive.ts"
+    ],
+    "definition_of_done": [
+      "회복 상한 120 적용",
+      "크로노타입 컷오프 정확",
+      "클램프 크래시 없음"
+    ],
+    "depends_on": [
+      "0002",
+      "0003"
+    ],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": ""
+  },
+  {
+    "id": "0006",
+    "title": "온보딩 페이지 /onboarding",
+    "epic": "Epic 3. UI Pages",
+    "task": {
+      "description": "ScreenScaffold + SubmitFooter. 목표 수면 Chip(6/7/8/9시간) 선택 후 완료. 미선택 시 완료 disabled. 범위 밖(<240/>720) 저장 시도 시 거부 '목표는 4~12시간 사이로 설정해주세요'. 완료 시 targetMinutes·onboarded true 저장 후 navigate('/',{replace:true}). Chip 선택 시 tickWeak 햅틱, 완료 시 success 햅틱. Chip·Button ≥44px.",
+      "acceptance_criteria": [
+        "8시간 선택·완료 시 targetMinutes480,onboarded true 저장 후 홈 replace 이동",
+        "미선택 시 완료 버튼 disabled",
+        "범위 밖 거부; Chip ≥44px"
+      ]
+    },
+    "covers": [
+      "F8-AC1",
+      "F8-AC4",
+      "F8-AC5"
+    ],
+    "files": [
+      "src/pages/OnboardingPage.tsx"
+    ],
+    "definition_of_done": [
+      "8시간→480 저장·홈 replace",
+      "미선택 disabled",
+      "범위 밖 거부"
+    ],
+    "depends_on": [
+      "0002"
+    ],
+    "db_schema": "UserSettings write to sdt.settings",
+    "api_contract": "",
+    "dependencies": [
+      "@toss/tds-mobile",
+      "@apps-in-toss/web-framework"
+    ],
+    "ui_requirements": "Pattern: Onboarding + FixedBottomCTA. TDS: Top, Chip, Button, Paragraph, Spacing, SubmitFooter. Layout: <Top title='목표 수면 설정'/> → Paragraph.Text 안내 → Chip 그룹(6/7/8/9시간, 선택 시 variant filled) → <SubmitFooter><Button variant='fill' size='large' disabled={!selected} onClick={onDone}>시작하기</Button></SubmitFooter>. States: 미선택 시 버튼 disabled; 범위 밖 저장 시 Toast 거부. Interactions: Chip 탭 tickWeak, 완료 success 햅틱, navigate('/',{replace:true}). 색상 var(--tds-color-*)만, HEX 금지, Chip 높이 ≥44px."
+  },
+  {
+    "id": "0007",
+    "title": "홈 대시보드 /",
+    "epic": "Epic 3. UI Pages",
+    "task": {
+      "description": "ScreenScaffold + FloatingTabBar. 로딩 시 Skeleton 히어로 → getCumulativeDebt 'N시간 M분' data-testid='debt-hero' SummaryHero(t2) → payoff Card(data-testid='payoff-card' 상환 예상일) → Sparkline(data-testid='trend-sparkline' 최근7일 debt) → 카드 하단 AdSlot 1개. 오늘 미기록 시 '오늘 수면 기록하기' Button. 0건이면 Asset.ContentIcon 빈 상태(차트·히어로 숨김). 부채0이면 '수면 부채 없음 🎉' Chip. 스트릭 data-testid='streak-chip'.",
+      "acceptance_criteria": [
+        "기록 3건↑ 시 debt-hero/trend-sparkline/payoff-card 렌더; 0건 시 빈 상태·차트 숨김",
+        "오늘 미기록 시 기록 버튼 노출; 부채0 시 배지",
+        "AdSlot 카드 하단 1개; 로딩 시 Skeleton"
+      ]
+    },
+    "covers": [
+      "F3-AC1",
+      "F3-AC3",
+      "F3-AC4",
+      "F3-AC5",
+      "F3-AC6",
+      "F3-AC7",
+      "F3-AC8",
+      "F6-AC4",
+      "F6-AC5"
+    ],
+    "files": [
+      "src/pages/HomePage.tsx"
+    ],
+    "definition_of_done": [
+      "3건↑ 히어로·차트·payoff 렌더",
+      "0건 빈 상태·차트 숨김",
+      "AdSlot 1개·Skeleton 로딩"
+    ],
+    "depends_on": [
+      "0002",
+      "0003",
+      "0004"
+    ],
+    "db_schema": "reads sdt.records, sdt.settings, sdt.streak",
+    "api_contract": "",
+    "dependencies": [
+      "@toss/tds-mobile",
+      "@apps-in-toss/web-framework"
+    ],
+    "ui_requirements": "Pattern: StatusPanel (Hero Summary + Sparkline). TDS: Top, SummaryHero, Amount, Chip, Sparkline, ListRow, Button, Spacing, Paragraph, EmptyState, Skeleton, AdSlot, FloatingTabBar. Layout: <Top title='수면 부채'/> <Spacing size=16/>. 0건→<EmptyState title='첫 수면을 기록해보세요' description='취침·기상 시간만 입력하면 돼요' action=<Button variant='weak'>수면 기록하기</Button>/>. ≥1건→<SummaryHero data-testid='debt-hero' label='누적 수면 부채' value=<Amount value='6시간 30분' typography='t2'/> caption='약 10일 후 상환 완료' right=<Chip data-testid='streak-chip' label='🔥 4일 연속' variant='filled'/>/>. 부채0이면 히어로 안 <Chip label='수면 부채 없음 🎉' variant='filled'/>. <div data-testid='payoff-card'><ListRow contents=<ListRow.Texts type='2RowTypeA' top='상환 예상' bottom='약 10일 후'/>/></div>. <Paragraph.Text typography='t4'>최근 7일 추이</Paragraph.Text> <Sparkline data-testid='trend-sparkline' data={last7Debt}/>. 오늘 미기록 시 <Button variant='fill' size='large' display='block'>오늘 수면 기록하기</Button>. <AdSlot adGroupId={import.meta.env.VITE_TOSS_AD_GROUP_ID}/> <FloatingTabBar/>. States: Loading Skeleton 히어로+차트; Empty Pattern E; Error 기본값 복구+'다시 시도' Button. Interactions: 기록 버튼 tickWeak→navigate('/record',{state:{date:currentDate}}); 탭 tickWeak; current=0이면 Chip 대신 '오늘부터 시작해보세요'. HEX 금지, var(--tds-color-*)만."
+  },
+  {
+    "id": "0008",
+    "title": "수면 입력 페이지 /record",
+    "epic": "Epic 3. UI Pages",
+    "task": {
+      "description": "ScreenScaffold, SubmitFooter(키보드 위 고정). TextField 취침·기상 inputMode='numeric'. 계산된 수면시간 미리보기 Paragraph.Text. location.state(RouteState['/record']) date 캐스팅, 없으면 currentDate. 기존 기록 있으면 프리필. 기상 비면 저장 disabled. 동일시간 시 '취침·기상 시간이 같아요' 에러. 저장 성공 success 햅틱→Toast '기록이 저장됐어요'→navigate('/'). QUOTA 시 Toast '저장 공간이 부족해요'(크래시 없음).",
+      "acceptance_criteria": [
+        "{23:00,07:00}→480,0 저장·Toast·홈 이동; {01:00,06:00}→300,180",
+        "기상 빈값 disabled; 동일시간 거부; 기존 date 프리필·갱신",
+        "QUOTA Toast·크래시 없음"
+      ]
+    },
+    "covers": [
+      "F2-AC1",
+      "F2-AC2",
+      "F2-AC3",
+      "F2-AC4",
+      "F2-AC5",
+      "F2-AC6",
+      "F2-AC7"
+    ],
+    "files": [
+      "src/pages/RecordPage.tsx"
+    ],
+    "definition_of_done": [
+      "정상 저장·Toast·이동",
+      "동일시간·빈값 처리",
+      "QUOTA Toast·프리필"
+    ],
+    "depends_on": [
+      "0004"
+    ],
+    "db_schema": "saveRecord upsert to sdt.records",
+    "api_contract": "",
+    "dependencies": [
+      "@toss/tds-mobile",
+      "@apps-in-toss/web-framework",
+      "react-router-dom"
+    ],
+    "ui_requirements": "Pattern: FixedBottomCTA (form + SubmitFooter). TDS: Top, TextField, Paragraph, Spacing, SubmitFooter, Button, Toast. Layout: <Top title='오늘 수면 기록'/> <Spacing size=16/> <TextField variant='box' label='취침 시간' value={bedTime} onChange={setBed} inputMode='numeric' help='예: 23:30' hasError={bedErr}/> <Spacing size=12/> <TextField variant='box' label='기상 시간' value={wakeTime} onChange={setWake} inputMode='numeric' help='예: 06:00' hasError={wakeErr}/> <Spacing size=16/> <Paragraph.Text typography='st3' color='secondary'>예상 수면 8시간 · 부채 0분</Paragraph.Text> <SubmitFooter><Button variant='fill' size='large' disabled={!wakeTime||!bedTime} onClick={onSave}>저장</Button></SubmitFooter>. States: 저장 중 Button loading; 신규 빈 필드/기존 프리필; 동일시간 help '취침·기상 시간이 같아요', 형식오류 '24시간 형식으로 입력해주세요'. Interactions: 기상 비면 disabled; 저장 성공 success 햅틱→Toast(position='bottom') '기록이 저장됐어요'→navigate('/'); QUOTA Toast '저장 공간이 부족해요'. location.state date 캐스팅. HEX 금지."
+  },
+  {
+    "id": "0009",
+    "title": "주간 리포트 페이지 /report",
+    "epic": "Epic 3. UI Pages",
+    "task": {
+      "description": "ScreenScaffold + FloatingTabBar. 기록 0건→EmptyState '이번 주 기록이 없어요'; <3건→'기록이 부족해요. 최소 3일 기록해주세요'(광고·차트 숨김). 3건↑: '리포트 보기'→TossRewardAd 시청 완료 후 요약 Card(data-testid='week-summary-card' 총부채 t3/평균 수면/최다 부족 요일)+MiniBar 7개(data-testid='week-bars' 목표선480 기준 부족일 강조색 var(--tds-color-*)). 로딩 Skeleton. 광고 실패 Toast '광고를 불러오지 못했어요. 잠시 후 다시 시도해주세요'(미공개).",
+      "acceptance_criteria": [
+        "광고 시청 완료 후에만 요약 Card·MiniBar7 노출",
+        "<3건/0건 안내·광고 숨김",
+        "광고 실패 Toast·미공개; 로딩 Skeleton"
+      ]
+    },
+    "covers": [
+      "F4-AC1",
+      "F4-AC2",
+      "F4-AC3",
+      "F4-AC4",
+      "F4-AC5",
+      "F4-AC6",
+      "F4-AC7"
+    ],
+    "files": [
+      "src/pages/ReportPage.tsx"
+    ],
+    "definition_of_done": [
+      "광고 후 결과 공개",
+      "부족/빈 상태 처리",
+      "광고 실패 Toast"
+    ],
+    "depends_on": [
+      "0005"
+    ],
+    "db_schema": "reads sdt.records, sdt.settings",
+    "api_contract": "",
+    "dependencies": [
+      "@toss/tds-mobile",
+      "@apps-in-toss/web-framework"
+    ],
+    "ui_requirements": "Pattern: OverlayPulse (리워드 게이트→결과 공개). TDS: Top, Button, TossRewardAd, ListRow, Paragraph, Spacing, Chip, EmptyState, Skeleton, Toast, FloatingTabBar. Layout: <Top title='주간 리포트'/> <Spacing size=16/>. 0건→<EmptyState title='이번 주 기록이 없어요' description='수면을 기록하면 리포트를 볼 수 있어요'/>. 1~2건→<Paragraph.Text typography='st3' color='secondary'>기록이 부족해요. 최소 3일 기록해주세요</Paragraph.Text>(광고/차트 숨김). ≥3건 미공개→<TossRewardAd slotId={import.meta.env.VITE_TOSS_AD_SLOT_ID}><div data-testid='week-summary-card'><Paragraph.Text typography='t3'>주간 총 부채 6시간 20분</Paragraph.Text><ListRow contents=<ListRow.Texts type='2RowTypeA' top='평균 수면' bottom='6시간 40분'/>/><ListRow contents=<ListRow.Texts type='2RowTypeA' top='최다 부족 요일' bottom='수요일'/>/><div data-testid='week-bars' style={{display:'flex',gap:8,alignItems:'flex-end'}}>MiniBar×7, 480분 미만 var(--tds-color-red) 강조</div></div></TossRewardAd> <FloatingTabBar/>. States: Loading Skeleton 차트+요약; Empty Pattern E; Error 광고 실패 Toast '광고를 불러오지 못했어요. 잠시 후 다시 시도해주세요' 미공개. Interactions: '리포트 보기' tickWeak→광고 시청→완료 시 결과 공개. HEX 금지."
+  },
+  {
+    "id": "0010",
+    "title": "회복 플랜 페이지 /plan",
+    "epic": "Epic 3. UI Pages",
+    "task": {
+      "description": "ScreenScaffold + FloatingTabBar. 기록 0건→EmptyState '먼저 수면을 기록해주세요'+/record 이동 버튼(state {date:currentDate}). 부채0→'회복이 필요 없어요. 지금 리듬을 유지하세요'(플랜 숨김). 그 외: '회복 플랜 보기'→TossRewardAd 완료 후 토·일 Card 2개(data-testid='plan-card' 권장 취침·기상+'추가 +N분' t3 강조). 로딩 Skeleton. 광고 중도종료 Toast '광고 시청을 완료해야 플랜을 볼 수 있어요'(미공개).",
+      "acceptance_criteria": [
+        "목표480·부채720→권장600 카드 2개; 부채0 안내·숨김",
+        "0건 안내+기록 이동; 광고 완료 후에만 공개",
+        "광고 실패 Toast; 로딩 Skeleton"
+      ]
+    },
+    "covers": [
+      "F5-AC1",
+      "F5-AC2"
+    ],
+    "files": [
+      "src/pages/PlanPage.tsx"
+    ],
+    "definition_of_done": [
+      "광고 후 토·일 플랜 카드 2개",
+      "부채0·0건 처리",
+      "광고 실패 Toast·Skeleton"
+    ],
+    "depends_on": [
+      "0005"
+    ],
+    "db_schema": "reads sdt.records, sdt.settings",
+    "api_contract": "",
+    "dependencies": [
+      "@toss/tds-mobile",
+      "@apps-in-toss/web-framework",
+      "react-router-dom"
+    ],
+    "ui_requirements": "Pattern: OverlayPulse (리워드 게이트→플랜 공개). TDS: Top, Button, TossRewardAd, ListRow, Paragraph, Spacing, EmptyState, Skeleton, Toast, FloatingTabBar. Layout: <Top title='주말 회복 플랜'/> <Spacing size=16/>. 0건→<EmptyState title='먼저 수면을 기록해주세요' action=<Button variant='weak'>수면 기록하기</Button>/>(navigate('/record',{state:{date:currentDate}})). 부채0→<Paragraph.Text typography='st3' color='secondary'>회복이 필요 없어요. 지금 리듬을 유지하세요</Paragraph.Text>(플랜 숨김). 그 외 미공개→<TossRewardAd slotId={import.meta.env.VITE_TOSS_AD_SLOT_ID}>토·일 각 <div data-testid='plan-card'><ListRow contents=<ListRow.Texts type='2RowTypeA' top='토요일 권장' bottom='취침 23:00 · 기상 09:00'/>/><Paragraph.Text typography='t3'>추가 +120분</Paragraph.Text></div></TossRewardAd> <FloatingTabBar/>. States: Loading Skeleton; Error 광고 중도종료 Toast '광고 시청을 완료해야 플랜을 볼 수 있어요' 미공개. Interactions: '회복 플랜 보기' tickWeak→광고→완료 후 공개. HEX 금지, var(--tds-color-*)만."
+  },
+  {
+    "id": "0011",
+    "title": "수면 유형 진단 페이지 /chronotype",
+    "epic": "Epic 3. UI Pages",
+    "task": {
+      "description": "ScreenScaffold + SubmitFooter. 5문항 각 1~5점 척도(Chip 또는 Segmented, ≥44px). 전체 응답 완료 전 '결과 보기' 버튼 disabled. 완료 시 diagnoseChronotype(answers) 실행, writeChronotype 저장 후 navigate('/chronotype/result',{state:{result}}). 척도 선택 시 tickWeak 햅틱, 완료 시 success 햅틱.",
+      "acceptance_criteria": [
+        "score21 입력→EVENING result로 이동",
+        "미응답 시 결과 보기 버튼 disabled",
+        "척도 ≥44px; 결과 writeChronotype 저장"
+      ]
+    },
+    "covers": [
+      "F7-AC1",
+      "F7-AC6"
+    ],
+    "files": [
+      "src/pages/ChronotypePage.tsx"
+    ],
+    "definition_of_done": [
+      "5문항 응답·진단 실행",
+      "미응답 disabled",
+      "결과 저장·result 이동"
+    ],
+    "depends_on": [
+      "0002",
+      "0005"
+    ],
+    "db_schema": "writeChronotype to sdt.chronotype",
+    "api_contract": "",
+    "dependencies": [
+      "@toss/tds-mobile",
+      "@apps-in-toss/web-framework",
+      "react-router-dom"
+    ],
+    "ui_requirements": "Pattern: Survey + FixedBottomCTA. TDS: Top, Paragraph, Chip, Spacing, SubmitFooter, Button. Layout: <Top title='수면 유형 진단'/> <Spacing size=16/>. 5개 문항 블록: 각 <Paragraph.Text typography='t5'>문항</Paragraph.Text> + Chip 그룹 5개(1~5점, 선택 시 variant filled, 높이 ≥44px) + <Spacing size=16/>. <SubmitFooter><Button variant='fill' size='large' disabled={answers.some(a=>!a)} onClick={onSubmit}>결과 보기</Button></SubmitFooter>. States: 미응답 disabled. Interactions: Chip 탭 tickWeak; 완료 success 햅틱→diagnoseChronotype→writeChronotype→navigate('/chronotype/result',{state:{result}}). HEX 금지, var(--tds-color-*)만."
+  },
+  {
+    "id": "0012",
+    "title": "진단 결과 페이지 /chronotype/result",
+    "epic": "Epic 3. UI Pages",
+    "task": {
+      "description": "ScreenScaffold. location.state(RouteState['/chronotype/result']) result 캐스팅, 없으면 getChronotype()로 폴백. 둘 다 없으면 안내 '진단 결과가 없어요'+'진단하러 가기' 버튼(→/chronotype). 결과 있으면 data-testid='chronotype-card'에 유형명(아침형/저녁형/중간형 t2)·score·설명 표시. '다시 진단' 버튼→navigate('/chronotype').",
+      "acceptance_criteria": [
+        "state/저장 결과로 chronotype-card 렌더(유형명 t2)",
+        "결과 없이 직접 진입 시 안내+이동 버튼",
+        "'다시 진단'→/chronotype"
+      ]
+    },
+    "covers": [
+      "F7-AC1"
+    ],
+    "files": [
+      "src/pages/ChronotypeResultPage.tsx"
+    ],
+    "definition_of_done": [
+      "결과 카드 렌더",
+      "결과 없음 안내",
+      "다시 진단 이동"
+    ],
+    "depends_on": [
+      "0002",
+      "0011"
+    ],
+    "db_schema": "reads sdt.chronotype",
+    "api_contract": "",
+    "dependencies": [
+      "@toss/tds-mobile",
+      "react-router-dom"
+    ],
+    "ui_requirements": "Pattern: ResultCard. TDS: Top, Paragraph, SummaryHero, Amount, ListRow, Button, Spacing, EmptyState. Layout: <Top title='진단 결과'/> <Spacing size=16/>. 결과 없음→<EmptyState title='진단 결과가 없어요' action=<Button variant='weak'>진단하러 가기</Button>/>(navigate('/chronotype')). 결과 있음→<div data-testid='chronotype-card'><SummaryHero label='내 수면 유형' value=<Amount value='저녁형' typography='t2'/> caption='점수 21점'/> <ListRow contents=<ListRow.Texts type='2RowTypeA' top='특징' bottom='밤에 집중력이 높아요'/>/></div> <Spacing size=24/> <Button variant='weak' display='block' onClick={()=>navigate('/chronotype')}>다시 진단</Button>. HEX 금지, var(--tds-color-*)만."
+  },
+  {
+    "id": "0013",
+    "title": "설정 페이지 /settings",
+    "epic": "Epic 3. UI Pages",
+    "task": {
+      "description": "ScreenScaffold + FloatingTabBar. 로딩 Skeleton→getSettings 프리필. 목표 수면 Chip(4~12시간) 선택 후 저장. 범위 밖(<240/>720) 저장 시도 시 거부 메시지·저장 안 됨. 저장 성공 시 writeSettings·Toast '목표를 저장했어요'. Chip ≥44px. 저장 success 햅틱.",
+      "acceptance_criteria": [
+        "7시간 저장→targetMinutes420·Toast",
+        "3시간 저장→거부 메시지·저장 안 됨",
+        "로딩 Skeleton→프리필; Chip ≥44px"
+      ]
+    },
+    "covers": [
+      "F8-AC1"
+    ],
+    "files": [
+      "src/pages/SettingsPage.tsx"
+    ],
+    "definition_of_done": [
+      "프리필·저장·Toast",
+      "범위 밖 거부",
+      "Skeleton 로딩"
+    ],
+    "depends_on": [
+      "0002"
+    ],
+    "db_schema": "reads/writes sdt.settings",
+    "api_contract": "",
+    "dependencies": [
+      "@toss/tds-mobile",
+      "@apps-in-toss/web-framework"
+    ],
+    "ui_requirements": "Pattern: SettingsForm. TDS: Top, ListRow, Chip, Button, Paragraph, Spacing, Skeleton, Toast, FloatingTabBar. Layout: <Top title='설정'/> <Spacing size=16/>. 로딩→<Skeleton>. 로드 후 <Paragraph.Text typography='t5'>목표 수면 시간</Paragraph.Text> + Chip 그룹(4~12시간, 현재값 선택 상태, 높이 ≥44px) + <Spacing size=24/> <Button variant='fill' size='large' display='block' onClick={onSave}>저장</Button> <FloatingTabBar/>. States: Loading Skeleton→프리필; 범위 밖 Toast 거부. Interactions: Chip tickWeak; 저장 success 햅틱→writeSettings→Toast '목표를 저장했어요'. HEX 금지, var(--tds-color-*)만."
+  },
+  {
+    "id": "0014",
+    "title": "라우터 배선 + 온보딩 가드",
+    "epic": "Epic 4. Integration",
+    "task": {
+      "description": "App.tsx에 react-router-dom Routes 배선: /onboarding, /(Home), /record, /report, /plan, /chronotype, /chronotype/result, /settings 전 경로 연결. getSettings().onboarded false면 모든 경로→/onboarding 리다이렉트(가드), onboarded true 시 정상 라우팅. FloatingTabBar 탭(홈·기록·리포트·플랜·진단) 이동 동작. main.tsx는 수정 금지(@AI:ANCHOR).",
+      "acceptance_criteria": [
+        "onboarded false 시 모든 경로→/onboarding 리다이렉트",
+        "onboarded true 시 정상 라우팅; 탭 이동 동작",
+        "컴파일·앱 구동"
+      ]
+    },
+    "covers": [
+      "F8-AC5"
+    ],
+    "files": [
+      "src/App.tsx"
+    ],
+    "definition_of_done": [
+      "전 경로 연결",
+      "온보딩 가드 동작",
+      "탭 이동·앱 구동"
+    ],
+    "depends_on": [
+      "0006",
+      "0007",
+      "0008",
+      "0009",
+      "0010",
+      "0011",
+      "0012",
+      "0013"
+    ],
+    "db_schema": "reads sdt.settings for guard",
+    "api_contract": "",
+    "dependencies": [
+      "react-router-dom"
+    ],
+    "ui_requirements": "App.tsx: <BrowserRouter><Routes>로 8개 경로 연결. onboarded 가드는 wrapper 컴포넌트에서 getSettings().onboarded 확인 후 <Navigate to='/onboarding' replace/>. FloatingTabBar는 각 메인 페이지 내부에서 렌더(이미 페이지에 포함). main.tsx 수정 금지."
+  },
+  {
+    "id": "0015",
+    "title": "검수 통과 최종 점검 (금지 패턴 제거)",
+    "epic": "Epic 4. Integration",
+    "task": {
+      "description": "App.tsx 및 광고/결제 배치 최종 폴리시. AdSlot(홈 카드 하단 1개)·TossRewardAd(리포트·플랜) 배치 확인, env 참조(VITE_TOSS_AD_GROUP_ID/VITE_TOSS_AD_SLOT_ID) 확인. grep로 금지 패턴 제거 검증: window.open|window.location.href|#[0-9a-fA-F]{3,6}|amplitude|gtag|console.error 매칭 0(정당 사유 제외). 프로덕션 빌드 성공·CORS 0. 페이지 파일은 수정하지 않음.",
+      "acceptance_criteria": [
+        "grep 금지 패턴 매칭 0(정당 사유 제외)",
+        "프로덕션 빌드 성공·CORS 0",
+        "AdSlot/TossRewardAd env 참조 확인"
+      ]
+    },
+    "covers": [
+      "G-1",
+      "G-2"
+    ],
+    "files": [
+      "src/App.tsx"
+    ],
+    "definition_of_done": [
+      "금지 패턴 0",
+      "빌드 성공",
+      "광고 env 참조 확인"
+    ],
+    "depends_on": [
+      "0014"
+    ],
+    "db_schema": "",
+    "api_contract": "",
+    "dependencies": [],
+    "ui_requirements": "광고 배치 최종 확인만 수행. AdSlot adGroupId={import.meta.env.VITE_TOSS_AD_GROUP_ID}, TossRewardAd slotId={import.meta.env.VITE_TOSS_AD_SLOT_ID}. HEX 하드코딩·외부 로깅·console.error 제거. 페이지 파일 수정 금지, App.tsx만 최종 점검."
+  },
+  {
+    "id": "0016",
+    "title": "라우팅 와이어링 + Provider 연결 + 통합 폴리시",
+    "epic": "4",
+    "task": {
+      "description": "App.tsx에 모든 페이지(OnboardingPage.tsx, HomePage.tsx, RecordPage.tsx, ReportPage.tsx, PlanPage.tsx, ChronotypePage.tsx, ChronotypeResultPage.tsx, SettingsPage.tsx) Route 연결, main.tsx 수정 금지(@AI:ANCHOR), 광고/결제 연동, 최종 UX 폴리시",
+      "acceptance_criteria": [
+        "App.tsx에 모든 페이지 Route가 정의되어 있다",
+        "모든 navigate() 대상에 Route가 존재한다",
+        "main.tsx의 TDSMobileAITProvider/BrowserRouter가 유지되어 있다",
+        "앱이 '/' 경로에서 정상 렌더링된다"
+      ]
+    },
+    "files": [
+      "src/App.tsx"
+    ],
+    "covers": [],
+    "definition_of_done": [
+      "typecheck pass",
+      "all routes accessible",
+      "no console errors"
+    ],
+    "depends_on": [
+      "0015"
+    ]
+  }
+]
