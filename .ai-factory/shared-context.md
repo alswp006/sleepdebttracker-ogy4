@@ -95,6 +95,7 @@ export const ROLLING_WINDOW_DAYS = 14;
     TossRewardAd.tsx
   hooks/
   lib/
+    adConfig.ts
     calc.ts
     derive.ts
     records.ts
@@ -103,7 +104,15 @@ export const ROLLING_WINDOW_DAYS = 14;
     utils.ts
   main.tsx
   pages/
+    ChronotypePage.tsx
+    ChronotypeResultPage.tsx
     Home.tsx
+    HomePage.tsx
+    OnboardingPage.tsx
+    PlanPage.tsx
+    RecordPage.tsx
+    ReportPage.tsx
+    SettingsPage.tsx
     __TdsGallery.tsx
   styles/
     globals.css
@@ -112,6 +121,7 @@ export const ROLLING_WINDOW_DAYS = 14;
   vite-env.d.ts
 
 ### Exports (src/lib/)
+- adConfig.ts: export function setAdConfig(config:; export function getAdGroupId(): string | undefined; export function getAdSlotId(): string | undefined
 - calc.ts: export type CalcSleepOk =; export type CalcSleepFail =; export type CalcSleepOutcome = CalcSleepOk | CalcSleepFail; export function calcSleep(; export function getCumulativeDebt(records: SleepRecord[], currentDate: string): number; export function estimatePayoffDays( cumDebt: number, records: SleepRecord[], settings: Pick<UserSettings, "targetMinutes; export function formatMinutes(totalMinutes: number): string
 - derive.ts: export type WeekReport =; export type RecoveryPlan =; export function getWeekReport(records: SleepRecord[], currentDate: string): WeekReport; export function getRecoveryPlan(cumDebt: number, targetMinutes: number): RecoveryPlan | null; export function diagnoseChronotype(answers: number[]): ChronotypeResult
 - records.ts: export function updateStreak(today: string): Streak; export function saveRecord(input: CalcInput, date: string, currentDate: string): SaveResult
@@ -139,14 +149,20 @@ export const ROLLING_WINDOW_DAYS = 14;
   lib/calc.ts → imports: lib/types
   lib/derive.ts → imports: lib/types
   lib/records.ts → imports: lib/types
+  pages/ChronotypePage.tsx → imports: components/ScreenScaffold, components/BottomCTA, lib/derive, lib/storage, lib/types
+  pages/ChronotypeResultPage.tsx → imports: components/ScreenScaffold, components/SummaryHero, components/Card, components/StateView, lib/storage, lib/types
+  pages/HomePage.tsx → imports: components/ScreenScaffold, components/SummaryHero, components/Card, components/Sparkline, components/StateView, components/AdSlot, components/FloatingTabBar, lib/storage, lib/calc, lib/types
+  pages/PlanPage.tsx → imports: components/ScreenScaffold, components/FloatingTabBar, components/Card, components/StateView, lib/storage, lib/calc, lib/derive, lib/types
+  pages/ReportPage.tsx → imports: components/ScreenScaffold, components/FloatingTabBar, components/Card, components/MiniBar, components/StateView, lib/storage, lib/derive, lib/calc, lib/types
+  pages/SettingsPage.tsx → imports: components/ScreenScaffold, components/FloatingTabBar, components/StateView, lib/storage, lib/types, lib/types
 CRITICAL: Before creating any new function, type, or component, check the list above. If something similar exists, import and use it.
 
 ## Already Implemented (do NOT duplicate or overwrite)
 - 0001: 전 엔티티 타입 + RouteState 정의 (files: src/lib/types.ts)
 - 0002: localStorage CRUD 헬퍼 (files: src/lib/storage.ts)
 - 0003: 부채 계산 엔진 (순수 함수) (files: src/lib/calc.ts)
-- 0005: 리포트/플랜/크로노타입 파생 계산 (files: src/lib/derive.ts)
 - 0004: 기록 upsert + 스트릭 갱신 로직 (files: src/lib/records.ts)
+- 0005: 리포트/플랜/크로노타입 파생 계산 (files: src/lib/derive.ts)
 - 0007: 홈 대시보드 / (files: src/pages/HomePage.tsx)
 - 0008: 수면 입력 페이지 /record (files: src/pages/RecordPage.tsx)
 - 0009: 주간 리포트 페이지 /report (files: src/pages/ReportPage.tsx)

@@ -167,6 +167,15 @@ export const tdsMock = {
         children,
       ),
 
+    // ChipItem is the real per-item toggle (selected/onClick/children — .d.ts verified),
+    // used inside a Chip group (kind="select"). Same shape as the Chip mock above.
+    ChipItem: ({ children, selected, onClick }: any) =>
+      React.createElement(
+        "button",
+        { role: "button", "aria-pressed": selected, onClick },
+        children,
+      ),
+
     Switch: ({ checked, onChange }: any) =>
       React.createElement("input", { type: "checkbox", checked, onChange, role: "switch" }),
 };

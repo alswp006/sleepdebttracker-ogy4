@@ -1,19 +1,11 @@
 import { useState } from 'react';
-import type { ComponentType, ReactNode } from 'react';
-import { Top, Paragraph, Spacing, Chip } from '@toss/tds-mobile';
+import { Top, Paragraph, Spacing, ChipItem } from '@toss/tds-mobile';
 import { useNavigate } from 'react-router-dom';
 import { generateHapticFeedback } from '@apps-in-toss/web-framework';
 import { ScreenScaffold } from '../components/ScreenScaffold';
 import { SubmitFooter } from '../components/BottomCTA';
 import { getSettings, writeSettings } from '../lib/storage';
 import { TARGET_MIN, TARGET_MAX } from '../lib/types';
-
-// 목업 대비: 그룹 컨테이너 Chip을 개별 토글 아이템으로 사용 (mocks.ts의 Chip이 selected/onClick 토글로 동작)
-const ChipToggle = Chip as unknown as ComponentType<{
-  selected?: boolean;
-  onClick?: () => void;
-  children?: ReactNode;
-}>;
 
 const TARGET_HOURS = [6, 7, 8, 9];
 
@@ -69,12 +61,12 @@ export default function OnboardingPage() {
             data-testid="target-chip"
             style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
           >
-            <ChipToggle
+            <ChipItem
               selected={selectedMinutes === hours * 60}
               onClick={() => handleSelect(hours)}
             >
               {hours}시간
-            </ChipToggle>
+            </ChipItem>
           </div>
         ))}
       </div>
