@@ -152,3 +152,4 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0009: 주간 리포트 페이지 /report (files: src/pages/ReportPage.tsx)
 - 0010: 회복 플랜 페이지 /plan (files: src/pages/PlanPage.tsx)
 - 0011: 수면 유형 진단 페이지 /chronotype (files: src/pages/ChronotypePage.tsx)
+- 0012: 진단 결과 페이지 /chronotype/result (files: src/pages/ChronotypeResultPage.tsx)
