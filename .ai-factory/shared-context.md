@@ -147,3 +147,4 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0003: 부채 계산 엔진 (순수 함수) (files: src/lib/calc.ts)
 - 0005: 리포트/플랜/크로노타입 파생 계산 (files: src/lib/derive.ts)
 - 0004: 기록 upsert + 스트릭 갱신 로직 (files: src/lib/records.ts)
+- 0007: 홈 대시보드 / (files: src/pages/HomePage.tsx)
