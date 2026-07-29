@@ -147,8 +147,9 @@ describe('saveRecord', () => {
     const { saveRecord } = require('@/lib/records');
 
     // Arrange: localStorage.setItem이 QuotaExceededError throw
-    const originalSetItem = localStorage.setItem;
-    localStorage.setItem = vi.fn(() => {
+    // (jsdom Storage는 legacy platform object라 인스턴스에 직접 대입하는 mock은
+    // named-property setter로 흡수되어 무시된다 — Storage.prototype을 spyOn해야 실제로 가로채진다)
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       const err = new Error('QuotaExceededError');
       err.name = 'QuotaExceededError';
       throw err;
@@ -165,49 +166,42 @@ describe('saveRecord', () => {
     }
 
     // Cleanup
-    localStorage.setItem = originalSetItem;
+    spy.mockRestore();
   });
 
   it('AC-3[P0]: should not call updateStreak when saveRecord fails with QUOTA', () => {
     const { saveRecord } = require('@/lib/records');
+    const { getStreak } = require('@/lib/storage');
 
     // Arrange
-    const originalSetItem = localStorage.setItem;
-    localStorage.setItem = vi.fn(() => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       const err = new Error('QuotaExceededError');
       err.name = 'QuotaExceededError';
       throw err;
     });
 
-    // Spy on updateStreak
-    const updateStreakSpy = vi.spyOn(require('@/lib/records'), 'updateStreak');
-
     // Act
     const input = { bedTime: '23:30', wakeTime: '06:00', targetMinutes: 480 };
     saveRecord(input, '2026-07-30', '2026-07-30');
 
-    // Assert: updateStreak 호출 안 됨
-    expect(updateStreakSpy).not.toHaveBeenCalled();
-
-    // Cleanup
-    localStorage.setItem = originalSetItem;
-    updateStreakSpy.mockRestore();
+    // Assert: updateStreak 호출 안 됨 (streak가 초기 상태로 남아있음)
+    spy.mockRestore();
+    const streak = getStreak();
+    expect(streak.current).toBe(0);
+    expect(streak.lastCheckDate).toBe('');
   });
 
   it('should call updateStreak with currentDate on successful save', () => {
     const { saveRecord } = require('@/lib/records');
-    const updateStreakSpy = vi.spyOn(require('@/lib/records'), 'updateStreak');
+    const { getStreak } = require('@/lib/storage');
 
     // Act
     const input = { bedTime: '23:30', wakeTime: '06:00', targetMinutes: 480 };
     const result = saveRecord(input, '2026-07-30', '2026-07-30');
 
-    // Assert: ok=true이고 updateStreak 호출됨
+    // Assert: ok=true이고 updateStreak가 currentDate로 반영됨
     expect(result.ok).toBe(true);
-    expect(updateStreakSpy).toHaveBeenCalledWith('2026-07-30');
-
-    // Cleanup
-    updateStreakSpy.mockRestore();
+    expect(getStreak().lastCheckDate).toBe('2026-07-30');
   });
 });
 

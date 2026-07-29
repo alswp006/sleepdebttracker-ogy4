@@ -96,6 +96,8 @@ export const ROLLING_WINDOW_DAYS = 14;
   hooks/
   lib/
     calc.ts
+    derive.ts
+    records.ts
     storage.ts
     types.ts
     utils.ts
@@ -111,6 +113,8 @@ export const ROLLING_WINDOW_DAYS = 14;
 
 ### Exports (src/lib/)
 - calc.ts: export type CalcSleepOk =; export type CalcSleepFail =; export type CalcSleepOutcome = CalcSleepOk | CalcSleepFail; export function calcSleep(; export function getCumulativeDebt(records: SleepRecord[], currentDate: string): number; export function estimatePayoffDays( cumDebt: number, records: SleepRecord[], settings: Pick<UserSettings, "targetMinutes; export function formatMinutes(totalMinutes: number): string
+- derive.ts: export type WeekReport =; export type RecoveryPlan =; export function getWeekReport(records: SleepRecord[], currentDate: string): WeekReport; export function getRecoveryPlan(cumDebt: number, targetMinutes: number): RecoveryPlan | null; export function diagnoseChronotype(answers: number[]): ChronotypeResult
+- records.ts: export function updateStreak(today: string): Streak; export function saveRecord(input: CalcInput, date: string, currentDate: string): SaveResult
 - storage.ts: export function getItem<T>(key: string): T | null; export function setItem<T>(key: string, value: T): void; export function removeItem(key: string): void; export function getRecords(): SleepRecord[]; export function writeRecords(records: SleepRecord[]): WriteResult; export function getSettings(): UserSettings; export function writeSettings(settings: UserSettings): WriteResult; export function getStreak(): Streak
 - types.ts: export interface SleepRecord; export interface UserSettings; export interface Streak; export type ChronotypeType = "MORNING" | "EVENING" | "INTERMEDIATE"; export interface ChronotypeResult; export type CalcInput =; export type CalcSleepResult =; export type SaveResult = |
 - utils.ts: export function cn(...classes: (string | boolean | undefined | null)[]): string; export function formatNumber(n: number): string; export function formatCurrency(n: number, currency = 'KRW'): string
@@ -133,9 +137,12 @@ export const ROLLING_WINDOW_DAYS = 14;
 
 ### Module Dependencies (import graph)
   lib/calc.ts → imports: lib/types
+  lib/derive.ts → imports: lib/types
+  lib/records.ts → imports: lib/types
 CRITICAL: Before creating any new function, type, or component, check the list above. If something similar exists, import and use it.
 
 ## Already Implemented (do NOT duplicate or overwrite)
 - 0001: 전 엔티티 타입 + RouteState 정의 (files: src/lib/types.ts)
 - 0002: localStorage CRUD 헬퍼 (files: src/lib/storage.ts)
 - 0003: 부채 계산 엔진 (순수 함수) (files: src/lib/calc.ts)
+- 0005: 리포트/플랜/크로노타입 파생 계산 (files: src/lib/derive.ts)
