@@ -4,6 +4,131 @@
 ## Shared Types Contract (IMPORT these, do NOT redefine)
 ```typescript
 // Domain types — add your app-specific types here
-export {};
+
+export interface SleepRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  bedTime: string; // HH:mm
+  wakeTime: string; // HH:mm
+  sleepMinutes: number;
+  debtMinutes: number;
+  createdAt: number;
+}
+
+export interface UserSettings {
+  targetMinutes: number; // TARGET_MIN..TARGET_MAX
+  aiNoticeAck: boolean;
+  onboarded: boolean;
+}
+
+export interface Streak {
+  current: number;
+  best: number;
+  lastCheckDate: string; // YYYY-MM-DD or ""
+}
+
+export type ChronotypeType = "MORNING" | "EVENING" | "INTERMEDIATE";
+
+export interface ChronotypeResult {
+  type: ChronotypeType;
+  score: number;
+  answeredAt: number;
+}
+
+export type CalcInput = {
+  bedTime: string;
+  wakeTime: string;
+  targetMinutes: number;
+};
+
+export type CalcSleepResult = {
+  sleepMinutes: number;
+  debtMinutes: number;
+};
+
+export type SaveResult =
+  | { ok: true; record: SleepRecord }
+  | { ok: false; error: string };
+
+export type RouteState = {
+  "/": undefined;
+  "/onboarding": undefined;
+  "/record": { date?: string } | undefined;
+  "/report": undefined;
+  "/plan": undefined;
+  "/settings": undefined;
+  "/chronotype": undefined;
+  "/chronotype/result": { result: ChronotypeResult } | undefined;
+};
+
+export const STORAGE_KEYS = {
+  records: "sdt.records",
+  settings: "sdt.settings",
+  streak: "sdt.streak",
+  chronotype: "sdt.chronotype",
+} as const;
+
+export const DEFAULT_TARGET_MINUTES = 480;
+export const TARGET_MIN = 240;
+export const TARGET_MAX = 720;
+export const ROLLING_WINDOW_DAYS = 14;
 
 ```
+
+## Existing Codebase (import and use these — do NOT recreate)
+### File Tree (src/)
+  App.tsx
+  components/
+    AdSlot.tsx
+    Amount.tsx
+    BottomCTA.tsx
+    Card.tsx
+    CountUp.tsx
+    FloatingTabBar.tsx
+    MiniBar.tsx
+    PageShell.tsx
+    ScreenScaffold.tsx
+    Sparkline.tsx
+    StateView.tsx
+    SummaryHero.tsx
+    TossPurchase.tsx
+    TossRewardAd.tsx
+  hooks/
+  lib/
+    storage.ts
+    types.ts
+    utils.ts
+  main.tsx
+  pages/
+    Home.tsx
+    __TdsGallery.tsx
+  styles/
+    globals.css
+    reward-ad.css
+  types/
+  vite-env.d.ts
+
+### Exports (src/lib/)
+- storage.ts: export function getItem<T>(key: string): T | null; export function setItem<T>(key: string, value: T): void; export function removeItem(key: string): void
+- types.ts: export interface SleepRecord; export interface UserSettings; export interface Streak; export type ChronotypeType = "MORNING" | "EVENING" | "INTERMEDIATE"; export interface ChronotypeResult; export type CalcInput =; export type CalcSleepResult =; export type SaveResult = |
+- utils.ts: export function cn(...classes: (string | boolean | undefined | null)[]): string; export function formatNumber(n: number): string; export function formatCurrency(n: number, currency = 'KRW'): string
+
+### Components (src/components/)
+- AdSlot.tsx: AdSlot
+- Amount.tsx: Amount
+- BottomCTA.tsx: SubmitFooter, ButtonStack
+- Card.tsx: Card
+- CountUp.tsx: CountUp
+- FloatingTabBar.tsx: FloatingTabBar
+- MiniBar.tsx: MiniBar
+- PageShell.tsx: PageShell
+- ScreenScaffold.tsx: ScreenScaffold
+- Sparkline.tsx: Sparkline
+- StateView.tsx: EmptyState, LoadingState
+- SummaryHero.tsx: SummaryHero
+- TossPurchase.tsx: TossPurchase
+- TossRewardAd.tsx: TossRewardAd
+CRITICAL: Before creating any new function, type, or component, check the list above. If something similar exists, import and use it.
+
+## Already Implemented (do NOT duplicate or overwrite)
+- 0001: 전 엔티티 타입 + RouteState 정의 (files: src/lib/types.ts)
