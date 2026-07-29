@@ -19,6 +19,12 @@ const TYPE_DESCRIPTION: Record<ChronotypeType, string> = {
   INTERMEDIATE: '낮과 밤 모두 무난하게 컨디션을 유지해요',
 };
 
+const TYPE_BEDTIME_RANGE: Record<ChronotypeType, string> = {
+  MORNING: '21:30~23:00',
+  EVENING: '00:00~01:30',
+  INTERMEDIATE: '22:30~00:00',
+};
+
 export default function ChronotypeResultPage() {
   const navigate = useNavigate();
   const state = useLocation().state as RouteState['/chronotype/result'];
@@ -39,6 +45,15 @@ export default function ChronotypeResultPage() {
             <ListRow
               contents={
                 <ListRow.Texts type="2RowTypeA" top="특징" bottom={TYPE_DESCRIPTION[result.type]} />
+              }
+            />
+            <ListRow
+              contents={
+                <ListRow.Texts
+                  type="2RowTypeA"
+                  top="권장 취침시간대"
+                  bottom={TYPE_BEDTIME_RANGE[result.type]}
+                />
               }
             />
           </Card>

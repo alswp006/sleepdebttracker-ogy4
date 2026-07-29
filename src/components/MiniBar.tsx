@@ -7,11 +7,14 @@ export function MiniBar({
   ratio,
   height = 8,
   testId,
+  accent = false,
 }: {
   /** 0..1 (범위 밖은 클램프) */
   ratio: number;
   height?: number;
   testId?: string;
+  /** true면 강조 색(부족일 등)으로 표시 */
+  accent?: boolean;
 }) {
   const pct = Math.max(0, Math.min(1, ratio)) * 100;
   return (
@@ -34,7 +37,7 @@ export function MiniBar({
           width: `${pct}%`,
           height: "100%",
           borderRadius: height,
-          backgroundColor: "var(--adaptiveBlue500)",
+          backgroundColor: accent ? "var(--adaptiveRed500)" : "var(--adaptiveBlue500)",
         }}
       />
     </div>

@@ -166,7 +166,12 @@ export default function ReportPage() {
           <Spacing size={16} />
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             {weekReport.sleepMinutes.map((minutes, i) => (
-              <MiniBar key={i} testId="week-bars" ratio={minutes / settings.targetMinutes} />
+              <MiniBar
+                key={i}
+                testId="week-bars"
+                ratio={minutes / settings.targetMinutes}
+                accent={minutes < settings.targetMinutes}
+              />
             ))}
           </div>
         </>
