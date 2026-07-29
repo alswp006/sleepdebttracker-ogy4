@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { Top, TextField, Paragraph, Spacing, Toast } from '@toss/tds-mobile';
-import { useNavigate } from 'react-router-dom';
-// NOTE: useLocation is imported from 'react-router' (not 'react-router-dom') because the
-// test harness's require()-shim (vitest.setup.ts) always substitutes a fixed mock location
-// for 'react-router-dom', which would ignore MemoryRouter's real initialEntries/state.
-// 'react-router' is the underlying package react-router-dom re-exports from and isn't
-// intercepted, so this reads the real router context (including navigation state) while
-// useNavigate stays on the mockable 'react-router-dom' entry point for assertions.
-import { useLocation } from 'react-router';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ScreenScaffold } from '../components/ScreenScaffold';
 import { SubmitFooter } from '../components/BottomCTA';
 import { getRecords, getSettings } from '../lib/storage';

@@ -17,12 +17,11 @@ import { vi } from "vitest";
 
 export const mockNavigate = vi.fn();
 export const mockLocation = { pathname: "/", search: "", state: null, key: "default" };
-
-// Exposed on globalThis so vitest.setup.ts's raw require() shim (used for TDD red-phase
-// `require("@/pages/X")` calls, which bypass vite-node's SSR module graph and thus its
-// vi.mock interception) can reuse these EXACT singletons instead of loading real modules.
-(globalThis as Record<string, unknown>).__mockNavigate = mockNavigate;
-(globalThis as Record<string, unknown>).__mockLocation = mockLocation;
+// NOTE: __mockNavigate is NOT set here at import time. It is set inside mockRouter() instead,
+// so that merely importing this module (e.g. a test that only wants mockTds/mockAppsInToss)
+// does NOT activate vitest.setup.ts's require() shim's useNavigate override. Otherwise a test
+// that intentionally uses the REAL router for navigation (packet-0014's tab-nav/redirect
+// integration tests) would silently get a no-op mockNavigate and its clicks wouldn't route.
 
 // ── TDS (@toss/tds-mobile) ──
 // TDS components use CSS-in-JS + layout hooks that crash in jsdom.
@@ -324,8 +323,15 @@ export function mockTossRewardAd() {
 }
 
 // ── react-router-dom ──
-// Preserve actual router + override useNavigate for assertion.
+// Preserve actual router + override useNavigate for assertion. useLocation is intentionally
+// left as the real implementation so pages read the actual MemoryRouter state that
+// renderWithRouter provides (initialEntries/state). All tests render through renderWithRouter,
+// so a Router context always exists — no need to stub useLocation.
 export function mockRouter() {
+  // Set the globalThis singleton only when a test opts into router mocking, so vitest.setup.ts's
+  // require() shim overrides useNavigate for require()'d red-phase pages ONLY in these tests.
+  (globalThis as Record<string, unknown>).__mockNavigate = mockNavigate;
+  (globalThis as Record<string, unknown>).__mockLocation = mockLocation;
   vi.mock("react-router-dom", async () => {
     const actual = await vi.importActual<typeof import("react-router-dom")>(
       "react-router-dom",
@@ -333,7 +339,6 @@ export function mockRouter() {
     return {
       ...actual,
       useNavigate: () => mockNavigate,
-      useLocation: () => mockLocation,
     };
   });
 }

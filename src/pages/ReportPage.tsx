@@ -73,7 +73,7 @@ export default function ReportPage() {
 
   if (!data) {
     return (
-      <ScreenScaffold top={top}>
+      <ScreenScaffold top={top} bottom={<FloatingTabBar items={TAB_ITEMS} />}>
         <LoadingState rows={4} testId="report-loading" />
       </ScreenScaffold>
     );

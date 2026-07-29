@@ -1,9 +1,5 @@
 import { Top, Paragraph, Spacing, ListRow, Button } from '@toss/tds-mobile';
-import { useNavigate } from 'react-router-dom';
-// NOTE: useLocation is imported from 'react-router' (not 'react-router-dom') — see
-// RecordPage.tsx for why: the test harness's require()-shim always substitutes a fixed
-// mock location for 'react-router-dom', which would ignore MemoryRouter's real state.
-import { useLocation } from 'react-router';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ScreenScaffold } from '@/components/ScreenScaffold';
 import { SummaryHero } from '@/components/SummaryHero';
 import { Card } from '@/components/Card';

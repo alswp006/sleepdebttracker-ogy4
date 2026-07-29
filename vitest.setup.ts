@@ -88,7 +88,9 @@ const originalRequire = (Module.prototype as unknown as { require: (id: string) 
   if (request === "@apps-in-toss/web-framework" && g.__appsInTossMock) return g.__appsInTossMock;
   if (request === "react-router-dom" && g.__mockNavigate) {
     const actual = originalRequire.call(this, request) as Record<string, unknown>;
-    return { ...actual, useNavigate: () => g.__mockNavigate, useLocation: () => g.__mockLocation };
+    // useLocation is left as the real implementation so require()'d pages read the actual
+    // MemoryRouter state (initialEntries/state); only useNavigate is stubbed for assertions.
+    return { ...actual, useNavigate: () => g.__mockNavigate };
   }
   return originalRequire.call(this, request);
 };
