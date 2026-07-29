@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import Home from './pages/Home';
 import OnboardingPage from './pages/OnboardingPage';
 import RecordPage from './pages/RecordPage';
+import ReportPage from './pages/ReportPage';
 
 // Dev-only TDS Gallery route — `import.meta.env.DEV` is statically replaced
 // (true in dev, false in prod) so the entire import + Route is tree-shaken
@@ -17,6 +18,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/record" element={<RecordPage />} />
+      <Route path="/report" element={<ReportPage />} />
       {DevTdsGallery && (
         <Route
           path="/__tds-gallery"
