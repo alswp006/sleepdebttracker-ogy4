@@ -93,6 +93,9 @@ export const ROLLING_WINDOW_DAYS = 14;
     SummaryHero.tsx
     TossPurchase.tsx
     TossRewardAd.tsx
+    ZzDebugNav.tsx
+    ZzDebugTab.tsx
+    ZzDebugTab2.tsx
   hooks/
   lib/
     adConfig.ts
@@ -114,6 +117,7 @@ export const ROLLING_WINDOW_DAYS = 14;
     ReportPage.tsx
     SettingsPage.tsx
     __TdsGallery.tsx
+    onboarding/
   styles/
     globals.css
     reward-ad.css
@@ -144,6 +148,9 @@ export const ROLLING_WINDOW_DAYS = 14;
 - SummaryHero.tsx: SummaryHero
 - TossPurchase.tsx: TossPurchase
 - TossRewardAd.tsx: TossRewardAd
+- ZzDebugNav.tsx: ZzDebugNav
+- ZzDebugTab.tsx: ZzDebugTab
+- ZzDebugTab2.tsx: ZzDebugTab2
 
 ### Module Dependencies (import graph)
   lib/calc.ts → imports: lib/types
@@ -171,3 +178,4 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0012: 진단 결과 페이지 /chronotype/result (files: src/pages/ChronotypeResultPage.tsx)
 - 0013: 설정 페이지 /settings (files: src/pages/SettingsPage.tsx)
 - 0015: 검수 통과 최종 점검 (금지 패턴 제거) (files: src/App.tsx)
+- 0006: 온보딩 페이지 /onboarding (files: src/pages/OnboardingPage.tsx)

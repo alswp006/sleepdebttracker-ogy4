@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Top, Paragraph, Spacing, ChipItem } from '@toss/tds-mobile';
+import { flushSync } from 'react-dom';
+import { Top, Paragraph, Spacing, ChipItem, Toast } from '@toss/tds-mobile';
 import { useNavigate } from 'react-router-dom';
 import { generateHapticFeedback } from '@apps-in-toss/web-framework';
 import { ScreenScaffold } from '../components/ScreenScaffold';
@@ -29,6 +30,7 @@ function fireHaptic(type: 'success' | 'tickWeak') {
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const [selectedMinutes, setSelectedMinutes] = useState<number | null>(null);
+  const [toast, setToast] = useState({ open: false, text: '' });
 
   const handleSelect = (hours: number) => {
     fireHaptic('tickWeak');
@@ -37,12 +39,18 @@ export default function OnboardingPage() {
 
   const handleComplete = () => {
     if (selectedMinutes === null) return;
-    const result = validateTargetMinutes(selectedMinutes);
-    if (!result.ok) return;
+    const validation = validateTargetMinutes(selectedMinutes);
+    if (!validation.ok) return;
 
     fireHaptic('success');
-    writeSettings({ ...getSettings(), targetMinutes: selectedMinutes, onboarded: true });
+    const result = writeSettings({ ...getSettings(), targetMinutes: selectedMinutes, onboarded: true });
+    if (!result.ok) {
+      setToast({ open: true, text: '저장 공간이 부족해요' });
+      return;
+    }
+    console.log('DEBUG isMock', typeof (navigate as any).mock, (navigate as any).name);
     navigate('/', { replace: true });
+    console.log('DEBUG after navigate call');
   };
 
   return (
@@ -70,6 +78,12 @@ export default function OnboardingPage() {
           </div>
         ))}
       </div>
+      <Toast
+        open={toast.open}
+        text={toast.text}
+        position="bottom"
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+      />
     </ScreenScaffold>
   );
 }
