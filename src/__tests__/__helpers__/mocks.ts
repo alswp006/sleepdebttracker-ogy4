@@ -140,6 +140,12 @@ export function mockTds() {
     BottomCTA: ({ children }: any) =>
       React.createElement("div", { "data-slot": "bottom-cta" }, children),
 
+    // FixedBottomCTA IS a <button> itself (.d.ts: HTMLButtonElement ref) — used by
+    // src/components/BottomCTA.tsx's SubmitFooter. Not previously mocked; without this,
+    // any page using SubmitFooter crashes in jsdom with "Element type is invalid".
+    FixedBottomCTA: ({ children, onClick, disabled, ...props }: any) =>
+      React.createElement("button", { onClick, disabled, ...props }, children),
+
     BottomSheet: Object.assign(
       ({ children, open }: any) =>
         open ? React.createElement("div", { role: "dialog" }, children) : null,
