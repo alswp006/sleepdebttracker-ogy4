@@ -154,3 +154,4 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0011: 수면 유형 진단 페이지 /chronotype (files: src/pages/ChronotypePage.tsx)
 - 0012: 진단 결과 페이지 /chronotype/result (files: src/pages/ChronotypeResultPage.tsx)
 - 0013: 설정 페이지 /settings (files: src/pages/SettingsPage.tsx)
+- 0015: 검수 통과 최종 점검 (금지 패턴 제거) (files: src/App.tsx)
