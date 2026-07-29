@@ -14,22 +14,30 @@ const ROUTES: { path: string; name: string }[] = [
   { path: "/", name: "home" },
   { path: "/record", name: "record" },
   { path: "/report", name: "report" },
+  { path: "/chronotype/result", name: "chronotype-result" },
   // { path: "/settings", name: "settings" },
 ];
 
 /** 데이터가 필요한 화면용 localStorage 시드(앱에 맞게 채워라). 앱 스크립트보다 먼저 실행된다. */
 async function seed(page: Page, routeName: string): Promise<void> {
-  if (routeName !== "report") return;
-  await page.addInitScript(() => {
-    const records = [
-      { id: "r1", date: "2026-01-12", bedTime: "23:00", wakeTime: "06:00", sleepMinutes: 420, debtMinutes: 60, createdAt: 1 },
-      { id: "r2", date: "2026-01-13", bedTime: "00:30", wakeTime: "06:30", sleepMinutes: 360, debtMinutes: 120, createdAt: 2 },
-      { id: "r3", date: "2026-01-15", bedTime: "23:30", wakeTime: "07:00", sleepMinutes: 450, debtMinutes: 30, createdAt: 3 },
-    ];
-    const settings = { targetMinutes: 480, aiNoticeAck: true, onboarded: true };
-    window.localStorage.setItem("sdt.records", JSON.stringify(records));
-    window.localStorage.setItem("sdt.settings", JSON.stringify(settings));
-  });
+  if (routeName === "report") {
+    await page.addInitScript(() => {
+      const records = [
+        { id: "r1", date: "2026-01-12", bedTime: "23:00", wakeTime: "06:00", sleepMinutes: 420, debtMinutes: 60, createdAt: 1 },
+        { id: "r2", date: "2026-01-13", bedTime: "00:30", wakeTime: "06:30", sleepMinutes: 360, debtMinutes: 120, createdAt: 2 },
+        { id: "r3", date: "2026-01-15", bedTime: "23:30", wakeTime: "07:00", sleepMinutes: 450, debtMinutes: 30, createdAt: 3 },
+      ];
+      const settings = { targetMinutes: 480, aiNoticeAck: true, onboarded: true };
+      window.localStorage.setItem("sdt.records", JSON.stringify(records));
+      window.localStorage.setItem("sdt.settings", JSON.stringify(settings));
+    });
+  }
+  if (routeName === "chronotype-result") {
+    await page.addInitScript(() => {
+      const chronotype = { type: "EVENING", score: 21, answeredAt: 1769000000000 };
+      window.localStorage.setItem("sdt.chronotype", JSON.stringify(chronotype));
+    });
+  }
 }
 
 // 토스 WebView 밖(일반 브라우저)에서만 나는 알려진 dev 에러 — 무시(실기기 WebView엔 안 남)

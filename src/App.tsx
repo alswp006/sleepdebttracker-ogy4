@@ -6,6 +6,7 @@ import RecordPage from './pages/RecordPage';
 import ReportPage from './pages/ReportPage';
 import PlanPage from './pages/PlanPage';
 import ChronotypePage from './pages/ChronotypePage';
+import ChronotypeResultPage from './pages/ChronotypeResultPage';
 
 // Dev-only TDS Gallery route — `import.meta.env.DEV` is statically replaced
 // (true in dev, false in prod) so the entire import + Route is tree-shaken
@@ -23,6 +24,7 @@ export default function App() {
       <Route path="/report" element={<ReportPage />} />
       <Route path="/plan" element={<PlanPage />} />
       <Route path="/chronotype" element={<ChronotypePage />} />
+      <Route path="/chronotype/result" element={<ChronotypeResultPage />} />
       {DevTdsGallery && (
         <Route
           path="/__tds-gallery"
