@@ -1,0 +1,22 @@
+{
+  "koreanName": "수면부채",
+  "englishName": "SleepDebtTracker",
+  "appName": "sleep-debt-tracker",
+  "ageRating": "전체",
+  "supportEmail": "support@aifactory.dev",
+  "category": {
+    "primary": "건강"
+  },
+  "subtitle": "수면 부채 계산과 주말 회복 플랜",
+  "description": "매일 취침과 기상 시간을 입력하면 목표 수면 시간 대비 부족분이 '수면 부채'로 누적된다. 주간 리포트에서 누적된 부채를 차트로 시각화해 확인할 수 있다. 리워드 광고를 시청하면 주말 몰아자기 회복 플랜을 제시받으며, 연속 기록 스트릭으로 매일의 체크인을 동기 부여받는다. 수면 유형 진단을 통해 본인의 수면 패턴을 파악하고 개인맞춤 건강 관리가 가능하다.",
+  "searchKeywords": [
+    "수면",
+    "수면 부채",
+    "수면 추적",
+    "수면 관리",
+    "건강 관리",
+    "피로",
+    "웰니스",
+    "수면 시간 기록"
+  ]
+}
