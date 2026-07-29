@@ -148,3 +148,4 @@ CRITICAL: Before creating any new function, type, or component, check the list a
 - 0005: 리포트/플랜/크로노타입 파생 계산 (files: src/lib/derive.ts)
 - 0004: 기록 upsert + 스트릭 갱신 로직 (files: src/lib/records.ts)
 - 0007: 홈 대시보드 / (files: src/pages/HomePage.tsx)
+- 0008: 수면 입력 페이지 /record (files: src/pages/RecordPage.tsx)
